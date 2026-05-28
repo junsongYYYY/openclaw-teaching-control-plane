@@ -46,7 +46,6 @@ templates/assistant-4-teaching-agent/
         └── my_document/
             └── test-data/
                 ├── active_test.json
-                ├── active_test_empty.json
                 ├── active_test_schema.md
                 ├── task_file_schema.md
                 ├── photo_workflow.md
@@ -63,7 +62,7 @@ templates/assistant-4-teaching-agent/
 - Public architecture notes for the OpenClaw platform control layer.
 - Public architecture notes for the teaching-agent control/execution layer.
 - A minimal sanitized `assistant-4` teaching-agent template that shows the state bus, task schemas, group mapping, and task-management scripts.
-- `active_test.json` contains a sanitized active-task example, while `active_test_empty.json` can be copied as the empty runtime initialization template.
+- `active_test.json` contains a sanitized active-task example; for a fresh runtime, clear its `active_tasks` array before deployment.
 - Sanitization notes explaining what was removed or replaced.
 
 ## Excluded
