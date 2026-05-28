@@ -1,4 +1,34 @@
 {
-  "active_tasks": [],
-  "note": "清理后的模板状态：无活跃任务，仅保留示例文件。"
+  "active_tasks": [
+    {
+      "id": "text_quiz_e2e",
+      "file": "text-quiz-e2e.json",
+      "type": "text_answers",
+      "published_at": "2026-05-28T09:00:00+08:00",
+      "expires_at": "2026-05-29T09:00:00+08:00",
+      "groups": [
+        "oc_GROUP_01",
+        "oc_GROUP_02"
+      ],
+      "submitted_students": [
+        "ou_USER_01"
+      ],
+      "completed": false,
+      "question_count": 2
+    },
+    {
+      "id": "photo_submission_sample",
+      "file": "photo-submission-sample.json",
+      "type": "photo_submission",
+      "published_at": "2026-05-28T10:00:00+08:00",
+      "expires_at": "2026-05-29T10:00:00+08:00",
+      "groups": [
+        "oc_GROUP_01"
+      ],
+      "submitted_students": [],
+      "completed": false,
+      "photo_count": 1
+    }
+  ],
+  "note": "脱敏示例状态：展示一个选择题任务和一个图片提交任务如何同时挂载到任务状态总线。真实部署可用 active_test_empty.json 初始化为空队列。"
 }

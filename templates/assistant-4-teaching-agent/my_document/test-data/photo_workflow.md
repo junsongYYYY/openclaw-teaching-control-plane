@@ -1,144 +1,145 @@
-# 图片任务处理规则
+# 图片提交任务通用处理规则
 
-> 收到学生图片时必读。
-
----
-
-## 🔴 铁律
-
-### 1. 高效验算（核心规则）
-- 每张照片**最多调 1 次 image 工具**，调完进入验算+评分
-- image 读取学生填写的数据 → **快速验算正确性** → 给出对错判断
-- **验算一次就出结论**，算完直接给分，不反复验证
-- **不一致不重调 image**——image 说学生填的是 -13，那就是 -13。我算出来不同，判"计算错误"即可，不怀疑 OCR
-- **抽样验算**：每个计算列抽查 2-3 行，不需要逐行全验
-- **thinking 控制在 10 行以内**——算完直接给分，不写推导过程
-- **连续 2 次 thinking 内容相似 → 立刻停止，直接出结论**
-- **每张照片处理上限：3 个 tool call**（读文件 → image → 保存回复）
-
-### 2. 执行顺序
-**批改 → 保存answers → 标记提交 → 回复**，严禁先标记提交再批改。
-
-### 3. 任务匹配
-必须遍历 **ALL** active_tasks 寻找 type=`photo_submission` 的匹配任务，不能只看第一个就下结论。
-
-### 4. image 失败保护
-image 失败时：**禁止编造评价、禁止给结论** → 保存 answers（result=pending_review）→ 回复"图片分析工具暂时不可用，等待教师复核"。
+> 收到学生图片时必读。本文件描述通用流程，不绑定某一个具体图片任务；每次评分必须以当前任务文件中的 `evaluation_criteria` 或 `grading_criteria` 为准。
 
 ---
 
-## image prompt 模板
+## 一、适用范围
 
-> 根据 grading_criteria 动态填充，只提取 checklist 需要的信息。
+图片提交任务用于评价学生上传的实操过程、记录表、测量成果、施工照片、设备状态或其他课程作品。不同课程可以替换 `tasks/*.json` 中的任务名称、图片数量和评分量规，本流程保持不变。
 
+---
+
+## 二、核心原则
+
+- **先匹配任务，再分析图片**：必须先读取 `active_test.json`，遍历全部 `active_tasks`，找到 `type=photo_submission` 且群组匹配、学生未提交、任务未过期的任务。
+- **评分依据来自任务文件**：图片分析提示词、检查项和分值均由当前任务文件的 `evaluation_criteria` / `grading_criteria` 动态生成，禁止沿用上一任务的具体字段。
+- **一次图片分析优先**：每张图片原则上只调用一次图像分析工具；图片不清晰或工具失败时，记录为 `pending_review`，交由教师复核。
+- **先批改再标记提交**：处理顺序固定为“读取任务 -> 分析图片 -> 评分 -> 保存 `answers/` -> 调用 `task_manager.py submit` -> 回复学生”。
+- **禁止直接改状态总线**：提交状态只能通过 `task_manager.py submit` 更新，禁止手工改写 `active_test.json`。
+
+---
+
+## 三、通用处理流程
+
+```text
+收到图片
+  -> 读取 active_test.json
+  -> 遍历全部 active_tasks
+  -> 匹配 type=photo_submission 的当前群组任务
+  -> 读取 tasks/{task.file}
+  -> 根据任务文件中的评分量规生成 image prompt
+  -> 分析图片并逐项评分
+  -> 保存 answers/{task_id}_{chat_id}_{sender_id}.json
+  -> task_manager.py submit 标记提交
+  -> 回复学生评分结果和改进建议
 ```
-请分析这张图片，按以下结构输出（精简）：
 
-【表头】测站名=__ 日期=__ 天气=__ 仪器=__ 观测者=__ 记录者=__（无则填"无"）
-【数据】按行列出：目标 | 盘左 | 盘右 | 2C | 平均方向值 | 归零方向值
-【质量】清晰度=清晰/模糊 遮挡=无/有 完整性=完整/缺页
+---
+
+## 四、image prompt 通用模板
+
+实际调用图像分析工具时，将 `{task_title}`、`{photo_requirement}`、`{criteria}` 替换为当前任务文件中的内容。
+
+```text
+请分析学生提交的图片，并严格依据当前任务评分量规评价。
+
+任务名称：{task_title}
+图片要求：{photo_requirement}
+评分量规：
+{criteria}
+
+请输出：
+1. 图片是否清晰、完整，是否满足提交要求；
+2. 每个评分项是否达成，并给出简要依据；
+3. 每项得分和总分；
+4. 对学生的简短反馈。
 
 注意：
-1. 只提取图片中实际看到的内容
-2. 输出精简，不要长篇解释
-3. 看不清的字段填"看不清"
+- 只依据图片中实际可见内容判断；
+- 看不清的内容标记为“无法判断”；
+- 不编造图片中没有的信息；
+- 不使用其他任务的评分标准。
 ```
 
 ---
 
-## 验算规则
+## 五、任务文件示例结构
 
-### 验算范围
+图片任务的具体评价规则写在 `tasks/*.json` 中。不同课程只需要替换任务文件，不需要修改本流程文档。
 
-| 计算列 | 公式 | 抽样策略 |
-|--------|------|---------|
-| 2C值 | 2C = 盘左 - (盘右 ± 180°) | 抽查 2-3 行（起始方向 + 1-2 个目标） |
-| 平均方向值 | (盘左 + 盘右±180°) / 2 | 抽查 2 行 |
-| 归零方向值 | 平均方向值 - 起始方向平均值 | 抽查 2 行 |
-| 2C互差 | max(2C) - min(2C) | 读完所有 2C 值后直接比大小 |
-| 测回互差 | 两测回同一方向的差值 | 读完直接比大小 |
-
-### 验算流程
-
-```
-1. image 提取数据 → 读取学生填写的 2C、平均值、归零值
-2. 抽查 2-3 行：用盘左+盘右 快速算一遍 → 对比学生填写值
-3. 一致 → ✓ 通过；不一致 → ✗ 错误
-4. 算完直接打分，不反复验算同一数据点
-```
-
-### 关键约束
-
-- **同一个数据点最多验算 1 次**
-- **image 读取值就是学生填写值，不怀疑、不重读**
-- **验算不一致 → 判错 → 结束，不再调 image 确认**
-
----
-
-## 量化打分模板
-
-### 打分规则
-
-| 规则 | 说明 |
-|------|------|
-| 权重均分 | 每项 weight 按 checks 数量均分（如 weight=20、4条checks → 每条 5 分） |
-| 通过判定 | 验算结果 + image 提取 → 逐条判断 ✓/✗ |
-| 部分通过 | 如 4 个信息写了 2 个 → 按比例给分（50%） |
-| 禁止感觉分 | 最终得分 = 各项得分之和，每条必须写明 `[check] ✓/✗ → +X分` |
-
-### 评分输出模板
-
-```
-- [checklist项名]：X/weight
-  - [check1内容] ✓/✗ → +X分（理由）
-  - [check2内容] ✓/✗ → +X分（理由）
-  ...
-```
-
----
-
-## 处理流程
-
-```
-收到图片 →
-1. 读 active_test.json → 遍历 ALL tasks，匹配 type=photo_submission
-   └─ 无匹配 → 轻量回复"当前没有活跃图片任务"，停止
-2. 读任务文件（tasks/）→ 获取 grading_criteria
-3. 调 image 工具分析图片（仅此一次！用精简 prompt）
-4. 验算 2-3 个数据点 → 对照 checklist 逐条打分
-5. 保存 answers/ → 通过 task_manager.py 标记提交 → 回复学生
-```
-
----
-
-## answers 保存格式
-
-**image 成功时：**
 ```json
 {
-  "task_id": "task_XXXXX", "task_type": "photo_submission",
-  "group_chat_id": "oc_xxx", "sender_id": "ou_xxx",
-  "submitted_media": ["图片描述"],
-  "image_tool_status": "success",
-  "grading": {
-    "checklist": [
-      { "id": "xxx", "name": "名称", "score": 12.5, "weight": 25, "details": "check1 ✓ +12.5 | check2 ✗ +0" }
-    ],
-    "total_score": 57, "max_score": 100, "result": "不合格"
-  },
-  "feedback": "简要评语", "timestamp": "ISO-8001"
+  "id": "photo_submission_sample",
+  "title": "验证图片任务",
+  "type": "photo_submission",
+  "photo_count": 1,
+  "evaluation_criteria": {
+    "photo1": {
+      "name": "气泡照片",
+      "check": "气泡居中"
+    }
+  }
 }
 ```
 
-**image 失败时：** result="pending_review"，evaluation 写明等待人工复核。
+---
 
-**文件名：** `answers/{task_id}_{chat_id}_{sender_id}.json`
+## 六、answers 保存格式
+
+图片分析成功时：
+
+```json
+{
+  "task_id": "photo_submission_sample",
+  "task_type": "photo_submission",
+  "group_chat_id": "oc_GROUP_01",
+  "sender_id": "ou_USER_01",
+  "submitted_media": ["photo_01"],
+  "image_tool_status": "success",
+  "grading": {
+    "items": [
+      {
+        "name": "评分项名称",
+        "score": 20,
+        "max_score": 20,
+        "evidence": "图片中可见的判断依据"
+      }
+    ],
+    "total_score": 100,
+    "max_score": 100,
+    "result": "合格"
+  },
+  "feedback": "简短反馈",
+  "timestamp": "2026-05-28T10:05:00+08:00"
+}
+```
+
+图片分析失败或内容无法判断时：
+
+```json
+{
+  "task_id": "photo_submission_sample",
+  "task_type": "photo_submission",
+  "group_chat_id": "oc_GROUP_01",
+  "sender_id": "ou_USER_01",
+  "image_tool_status": "failed",
+  "grading": {
+    "result": "pending_review"
+  },
+  "feedback": "图片暂无法自动判断，等待教师复核。",
+  "timestamp": "2026-05-28T10:05:00+08:00"
+}
+```
 
 ---
 
-## 更新提交状态
+## 七、提交状态更新
+
+批改结果保存后，再调用统一入口更新提交状态：
 
 ```bash
-python3 task_manager.py submit --task-id <ID> --group <chat_id> --student-id <open_id>
+python3 task_manager.py submit --task-id <task_id> --group <chat_id> --student-id <open_id>
 ```
-禁止直接写 active_test.json，必须通过 task_manager.py。
+
+禁止直接修改 `active_test.json`。
