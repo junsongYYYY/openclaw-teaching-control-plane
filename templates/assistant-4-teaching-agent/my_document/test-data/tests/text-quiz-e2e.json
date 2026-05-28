@@ -1,0 +1,21 @@
+{
+  "id": "text_quiz_e2e",
+  "title": "E2E Text Quiz",
+  "course": "四等水准测量",
+  "questions": [
+    {
+      "id": 1,
+      "question": "四等水准测量中，双面尺法的观测顺序是？",
+      "options": ["A. 前-前-后-后", "B. 后-前-前-后", "C. 后-后-前-前", "D. 前-后-前-后"],
+      "answer": "B",
+      "knowledge_point": "四等水准观测顺序"
+    },
+    {
+      "id": 2,
+      "question": "一对双面水准尺的红面常数K分别为？",
+      "options": ["A. 4687mm 和 4787mm", "B. 4587mm 和 4687mm", "C. 4787mm 和 4887mm", "D. 4687mm 和 4687mm"],
+      "answer": "A",
+      "knowledge_point": "水准尺常数K"
+    }
+  ]
+}

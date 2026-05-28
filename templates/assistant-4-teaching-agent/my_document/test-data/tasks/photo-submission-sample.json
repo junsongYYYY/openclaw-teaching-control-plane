@@ -1,0 +1,12 @@
+{
+  "id": "photo_submission_sample",
+  "title": "验证图片任务",
+  "type": "photo_submission",
+  "photo_count": 1,
+  "evaluation_criteria": {
+    "photo1": {
+      "name": "气泡照片",
+      "check": "气泡居中"
+    }
+  }
+}

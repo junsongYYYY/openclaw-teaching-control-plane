@@ -1,0 +1,25 @@
+{
+  "test_id": "text_quiz_e2e",
+  "group_chat_id": "oc_GROUP_01",
+  "sender_id": "ou_e2e_test_001",
+  "answers": [
+    {
+      "q_id": 1,
+      "student_answer": "B",
+      "correct_answer": "B",
+      "correct": true,
+      "knowledge_point": "四等水准观测顺序"
+    },
+    {
+      "q_id": 2,
+      "student_answer": "A",
+      "correct_answer": "A",
+      "correct": true,
+      "knowledge_point": "水准尺常数K"
+    }
+  ],
+  "score": 2,
+  "total": 2,
+  "accuracy": 1.0,
+  "timestamp": "2026-05-13T23:14:41.676603"
+}
